@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Cube in Space</title>
+    <title>3D Models in Space</title>
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
@@ -22,41 +22,70 @@
 
         // Camera
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 4;
+        camera.position.z = 5;
 
         // Renderer
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
 
-        // Add lighting
-        const ambientLight = new THREE.AmbientLight(0x333333); // Soft ambient light
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x555555);
         scene.add(ambientLight);
 
         const pointLight = new THREE.PointLight(0xffffff, 1, 100);
         pointLight.position.set(5, 5, 5);
+        pointLight.castShadow = true;
         scene.add(pointLight);
 
         // Load texture
         const cubeTexture = textureLoader.load('https://threejs.org/examples/textures/crate.gif');
 
         // Create cube
-        const geometry = new THREE.BoxGeometry();
-        const material = new THREE.MeshStandardMaterial({ 
-            map: cubeTexture 
-        });
-        const cube = new THREE.Mesh(geometry, material);
+        const cubeGeometry = new THREE.BoxGeometry();
+        const cubeMaterial = new THREE.MeshStandardMaterial({ map: cubeTexture });
+        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        cube.position.set(-2, 0, 0);
         scene.add(cube);
+
+        // Create sphere
+        const sphereGeometry = new THREE.SphereGeometry(0.8, 32, 32);
+        const sphereMaterial = new THREE.MeshStandardMaterial({ color: 0xff5733 });
+        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        sphere.position.set(2, 0, 0);
+        scene.add(sphere);
+
+        // Create torus (donut shape)
+        const torusGeometry = new THREE.TorusGeometry(1, 0.3, 16, 100);
+        const torusMaterial = new THREE.MeshStandardMaterial({ color: 0x33ff57 });
+        const torus = new THREE.Mesh(torusGeometry, torusMaterial);
+        torus.position.set(0, 2, 0);
+        scene.add(torus);
+
+        // Create cone
+        const coneGeometry = new THREE.ConeGeometry(0.8, 2, 32);
+        const coneMaterial = new THREE.MeshStandardMaterial({ color: 0x3380ff });
+        const cone = new THREE.Mesh(coneGeometry, coneMaterial);
+        cone.position.set(0, -2, 0);
+        scene.add(cone);
 
         // Add interactive controls
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true; // Smooth movement
+        controls.enableDamping = true;
 
         // Animation loop
         function animate() {
             requestAnimationFrame(animate);
+            
+            // Rotate objects
             cube.rotation.x += 0.01;
             cube.rotation.y += 0.01;
+            sphere.rotation.y += 0.02;
+            torus.rotation.x += 0.01;
+            torus.rotation.y += 0.01;
+            cone.rotation.y += 0.02;
+            
             controls.update();
             renderer.render(scene, camera);
         }
