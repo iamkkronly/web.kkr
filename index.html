@@ -16,12 +16,10 @@
     <div id="gameOver">GAME OVER! Refresh to restart.</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script>
-        let scene, camera, renderer, spaceship, score = 0, gameOver = false;
-        const lasers = [];
-        const asteroids = [];
+        let scene, camera, renderer, spaceship, shieldActive = false, score = 0, gameOver = false;
+        const lasers = [], asteroids = [], enemies = [], enemyLasers = [], powerUps = [];
         const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, ShiftLeft: false };
 
         function init() {
@@ -37,9 +35,6 @@
             document.body.appendChild(renderer.domElement);
 
             scene.add(new THREE.AmbientLight(0x333333));
-            const pointLight = new THREE.PointLight(0xffffff, 1.5, 100);
-            pointLight.position.set(5, 5, 5);
-            scene.add(pointLight);
 
             const loader = new THREE.GLTFLoader();
             loader.load('https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf', (gltf) => {
@@ -50,6 +45,8 @@
             });
 
             for (let i = 0; i < 5; i++) spawnAsteroid();
+            for (let i = 0; i < 2; i++) spawnEnemy();
+            setInterval(spawnPowerUp, 10000);
 
             document.addEventListener('keydown', (event) => {
                 if (keys.hasOwnProperty(event.code)) keys[event.code] = true;
@@ -69,8 +66,30 @@
                 new THREE.MeshStandardMaterial({ color: 0x888888 })
             );
             asteroid.position.set(Math.random() * 10 - 5, Math.random() * 6 - 3, -Math.random() * 10 - 5);
+            asteroid.velocity = new THREE.Vector3(Math.random() * 0.05 - 0.025, Math.random() * 0.05 - 0.025, 0.05);
             asteroids.push(asteroid);
             scene.add(asteroid);
+        }
+
+        function spawnEnemy() {
+            const enemy = new THREE.Mesh(
+                new THREE.BoxGeometry(0.8, 0.8, 0.8),
+                new THREE.MeshStandardMaterial({ color: 0xff0000 })
+            );
+            enemy.position.set(Math.random() * 8 - 4, Math.random() * 5 - 2.5, -10);
+            enemies.push(enemy);
+            scene.add(enemy);
+            setInterval(() => enemyShootLaser(enemy), 2000);
+        }
+
+        function spawnPowerUp() {
+            const powerUp = new THREE.Mesh(
+                new THREE.SphereGeometry(0.3, 16, 16),
+                new THREE.MeshBasicMaterial({ color: Math.random() > 0.5 ? 0x00ff00 : 0x0000ff })
+            );
+            powerUp.position.set(Math.random() * 8 - 4, Math.random() * 5 - 2.5, -8);
+            powerUps.push(powerUp);
+            scene.add(powerUp);
         }
 
         function shootLaser() {
@@ -80,6 +99,17 @@
             );
             laser.position.set(spaceship.position.x, spaceship.position.y, spaceship.position.z - 1);
             lasers.push(laser);
+            scene.add(laser);
+        }
+
+        function enemyShootLaser(enemy) {
+            if (gameOver) return;
+            const laser = new THREE.Mesh(
+                new THREE.BoxGeometry(0.1, 0.1, 1),
+                new THREE.MeshBasicMaterial({ color: 0xff8800 })
+            );
+            laser.position.set(enemy.position.x, enemy.position.y, enemy.position.z + 1);
+            enemyLasers.push(laser);
             scene.add(laser);
         }
 
@@ -97,38 +127,39 @@
                     }
                 });
 
-                if (spaceship && spaceship.position.distanceTo(asteroid.position) < 0.8) {
-                    document.getElementById('gameOver').style.display = 'block';
-                    gameOver = true;
+                if (spaceship && !shieldActive && spaceship.position.distanceTo(asteroid.position) < 0.8) {
+                    endGame();
+                }
+            });
+
+            enemyLasers.forEach((laser) => {
+                if (spaceship && !shieldActive && spaceship.position.distanceTo(laser.position) < 0.8) {
+                    endGame();
+                }
+            });
+
+            powerUps.forEach((powerUp, pIndex) => {
+                if (spaceship && spaceship.position.distanceTo(powerUp.position) < 0.8) {
+                    shieldActive = true;
+                    scene.remove(powerUp);
+                    powerUps.splice(pIndex, 1);
+                    setTimeout(() => (shieldActive = false), 5000);
                 }
             });
         }
 
+        function endGame() {
+            document.getElementById('gameOver').style.display = 'block';
+            gameOver = true;
+        }
+
         function animate() {
             if (gameOver) return;
-
             requestAnimationFrame(animate);
 
-            if (spaceship) {
-                let speed = keys.ShiftLeft ? 0.2 : 0.05;
-                if (keys.ArrowUp) spaceship.position.y += speed;
-                if (keys.ArrowDown) spaceship.position.y -= speed;
-                if (keys.ArrowLeft) spaceship.position.x -= speed;
-                if (keys.ArrowRight) spaceship.position.x += speed;
-            }
-
-            lasers.forEach((laser, index) => {
-                laser.position.z -= 0.2;
-                if (laser.position.z < -10) {
-                    scene.remove(laser);
-                    lasers.splice(index, 1);
-                }
-            });
-
-            asteroids.forEach((asteroid) => {
-                asteroid.position.z += 0.05;
-                if (asteroid.position.z > 5) asteroid.position.z = -10;
-            });
+            asteroids.forEach((asteroid) => asteroid.position.add(asteroid.velocity));
+            lasers.forEach((laser) => (laser.position.z -= 0.2));
+            enemyLasers.forEach((laser) => (laser.position.z += 0.1));
 
             detectCollisions();
             renderer.render(scene, camera);
