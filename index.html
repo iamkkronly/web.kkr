@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beautiful 3D Cube in Space</title>
+    <title>3D Cube in Space</title>
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
@@ -33,28 +33,20 @@
         const ambientLight = new THREE.AmbientLight(0x333333); // Soft ambient light
         scene.add(ambientLight);
 
-        const pointLight = new THREE.PointLight(0x00ffcc, 2, 100);
+        const pointLight = new THREE.PointLight(0xffffff, 1, 100);
         pointLight.position.set(5, 5, 5);
         scene.add(pointLight);
 
         // Load texture
         const cubeTexture = textureLoader.load('https://threejs.org/examples/textures/crate.gif');
 
-        // Create cube with light emission
+        // Create cube
         const geometry = new THREE.BoxGeometry();
         const material = new THREE.MeshStandardMaterial({ 
-            map: cubeTexture, 
-            emissive: 0x00ffcc, 
-            emissiveIntensity: 0.5 
+            map: cubeTexture 
         });
         const cube = new THREE.Mesh(geometry, material);
         scene.add(cube);
-
-        // Add glowing wireframe effect
-        const glowMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true });
-        const glowCube = new THREE.Mesh(geometry, glowMaterial);
-        glowCube.scale.set(1.05, 1.05, 1.05); // Slightly larger for glow effect
-        scene.add(glowCube);
 
         // Add interactive controls
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -65,8 +57,6 @@
             requestAnimationFrame(animate);
             cube.rotation.x += 0.01;
             cube.rotation.y += 0.01;
-            glowCube.rotation.x += 0.01;
-            glowCube.rotation.y += 0.01;
             controls.update();
             renderer.render(scene, camera);
         }
