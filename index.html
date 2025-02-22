@@ -23,7 +23,7 @@
 
         // Camera
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 2, 5);
+        camera.position.set(0, 2, 10);
 
         // Renderer
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -53,26 +53,62 @@
         controls.enableDamping = true; 
 
         // Spaceship movement
-        const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
-        
+        const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, ShiftLeft: false };
+        document.addEventListener('keydown', (event) => { if (keys.hasOwnProperty(event.code)) keys[event.code] = true; });
+        document.addEventListener('keyup', (event) => { if (keys.hasOwnProperty(event.code)) keys[event.code] = false; });
+
+        // Shooting lasers
+        const lasers = [];
         document.addEventListener('keydown', (event) => {
-            if (keys.hasOwnProperty(event.code)) keys[event.code] = true;
+            if (event.code === 'Space' && spaceship) {
+                const laser = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.1, 0.1, 1),
+                    new THREE.MeshBasicMaterial({ color: 0xff0000 })
+                );
+                laser.position.set(spaceship.position.x, spaceship.position.y, spaceship.position.z - 1);
+                lasers.push(laser);
+                scene.add(laser);
+            }
         });
 
-        document.addEventListener('keyup', (event) => {
-            if (keys.hasOwnProperty(event.code)) keys[event.code] = false;
-        });
+        // Asteroids
+        const asteroids = [];
+        for (let i = 0; i < 5; i++) {
+            const asteroid = new THREE.Mesh(
+                new THREE.SphereGeometry(0.5, 16, 16),
+                new THREE.MeshStandardMaterial({ color: 0x888888 })
+            );
+            asteroid.position.set(Math.random() * 10 - 5, Math.random() * 6 - 3, -Math.random() * 10 - 5);
+            asteroids.push(asteroid);
+            scene.add(asteroid);
+        }
 
         // Animation loop
         function animate() {
             requestAnimationFrame(animate);
 
             if (spaceship) {
-                if (keys.ArrowUp) spaceship.position.y += 0.05;
-                if (keys.ArrowDown) spaceship.position.y -= 0.05;
-                if (keys.ArrowLeft) spaceship.position.x -= 0.05;
-                if (keys.ArrowRight) spaceship.position.x += 0.05;
+                let speed = keys.ShiftLeft ? 0.2 : 0.05;
+                if (keys.ArrowUp) spaceship.position.y += speed;
+                if (keys.ArrowDown) spaceship.position.y -= speed;
+                if (keys.ArrowLeft) spaceship.position.x -= speed;
+                if (keys.ArrowRight) spaceship.position.x += speed;
             }
+
+            // Move lasers forward
+            lasers.forEach((laser, index) => {
+                laser.position.z -= 0.2;
+                if (laser.position.z < -10) {
+                    scene.remove(laser);
+                    lasers.splice(index, 1);
+                }
+            });
+
+            // Move asteroids
+            asteroids.forEach((asteroid) => {
+                asteroid.position.z += 0.05;
+                if (asteroid.position.z > 5) asteroid.position.z = -10;
+            });
 
             controls.update();
             renderer.render(scene, camera);
@@ -80,7 +116,7 @@
 
         animate();
 
-        // Responsive resize
+        // Handle window resize
         window.addEventListener('resize', () => {
             renderer.setSize(window.innerWidth, window.innerHeight);
             camera.aspect = window.innerWidth / window.innerHeight;
